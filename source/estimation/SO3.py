@@ -1,5 +1,9 @@
-import numpy as np
+import sys
+import os
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
+import numpy as np
+from estimation.config import TOLERANCE
 
 def skew_symmetric_matrix(v):
     """
@@ -20,7 +24,7 @@ def rodrigues(v):
     :return: 3x3 numpy array of the rotation matrix
     """
     theta = np.linalg.norm(v)
-    if theta < np.finfo(float).eps:
+    if theta < TOLERANCE:
         A = 1.0 - theta**2 / 6.0
         B = 0.5 - theta**2 / 24.0
     else:
@@ -193,5 +197,5 @@ class SO3:
         return np.arctan2(self._R[1, 0], self._R[0, 0])
 
 
-if __name__ == "__main__":
+if (__name__ == "__main__"):
     pass
