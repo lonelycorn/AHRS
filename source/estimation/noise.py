@@ -1,4 +1,5 @@
 import numpy
+import json
 
 class GaussianNoise:
     def __init__(self, **kwargs):
@@ -15,8 +16,14 @@ class GaussianNoise:
     def __str__(self):
         return '[GaussianNoise] mu = %f, sigma = %f' % (self.mu, self.sigma)
 
-    def GetValue(self):
+    def get_value(self):
         return numpy.random.normal(self.mu, self.sigma)
+
+    @classmethod
+    def from_parameters(self, parameters):
+        if (len(parameter) != 2):
+            raise ValueError("Need 2 parameters.")
+        return GaussianNoise(mu=parameter[0], sigma=parameter[1])
 
 class UniformNoise:
     def __init__(self, **kwargs):
@@ -33,8 +40,14 @@ class UniformNoise:
     def __str__(self):
         return '[UniformNoise] lower = %f, upper = %f' % (self.lower, self.upper)
 
-    def GetValue(self):
+    def get_value(self):
         return random.uniform(self.lower, self.upper)
+
+    @classmethod
+    def from_parameter(self, parameters):
+        if (len(parameter) != 2):
+            raise ValueError("Need 2 parameters.")
+        return UniformNoise(lower=parameter[0], upper=parameter[1])
 
 class CompositeNoise:
     """
@@ -46,7 +59,7 @@ class CompositeNoise:
     def __str__(self):
         raise NotImplementedError('')
 
-    def GetValue(self):
+    def get_value(self):
         raise NotImplementedError('')
 
 if __name__ == '__main__':

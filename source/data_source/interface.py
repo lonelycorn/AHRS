@@ -2,7 +2,7 @@ class DataSourceInterface:
     def __init__(self):
         raise NotImplementedError("Must read constructor.");
 
-    def Read(self):
+    def read(self):
         """
         Read data entry.
         === OUTPUT ===
@@ -11,10 +11,11 @@ class DataSourceInterface:
             "gyro": [x, y, z] the raw reading of the strapdown gyro, in rad/s;
             "accel": [x, y, z] the raw reading of the strapdown accelerometer, in m^2/s;
             "mag": [x, y, z] the raw reading of the strapdown magnetometer, in G(gauss);
+        or None if eof.
         """
         raise NotImplementedError("Must implement read().");
 
-    def EOF(self):
+    def eof(self):
         """
         Check to see if there is more data.
         === OUTPUT ===
