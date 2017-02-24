@@ -1,6 +1,11 @@
+import sys
+import os
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
+
 import unittest
-from least_square_estimator import LeastSquareEstimator
 import numpy as np
+
+from base.least_square_estimator import LeastSquareEstimator
 
 class TestLeastSquareEstimator(unittest.TestCase):
     '''

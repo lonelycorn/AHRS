@@ -1,8 +1,12 @@
+import sys
+import os
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
+
 import unittest
 import numpy as np
 
-from kalman_filter import KalmanFilterSO3
-from test_SO3 import test_matrix_equal
+from estimation.kalman_filter import KalmanFilterSO3
+from base.utility import test_matrix_equal
 
 
 class TestKalmanFilterSO3(unittest.TestCase):

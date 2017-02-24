@@ -4,8 +4,8 @@ sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
 import numpy as np
 
-from estimation.kalman_filter import KalmanFilter
-from estimation.SO3 import SO3
+from base.SO3 import SO3
+from estimation.kalman_filter import KalmanFilterSO3
 
 class Engine:
     STATE_INIT = 0
@@ -14,8 +14,10 @@ class Engine:
     STATE_RUNNING = 2
 
     def __init__(self):
-        self._filter = KalmanFilter() # estimates the transform from current chip to initial chip
-        self._state = ENGINE_STATE_INIT
+        # FIXME: disabled until we figured out how to use it.
+        self._filter = None
+        #self._filter = KalmanFilterSO3() # estimates the transform from current chip to initial chip
+        self._state = Engine.STATE_INIT
         self._mag_ref = None
         self._mag_bias = None
         self._gyro_bias = None

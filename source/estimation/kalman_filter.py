@@ -3,8 +3,8 @@ import os
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
 import numpy as np
-from estimation.SO3 import SO3
-from estimation.SO3 import skew_symmetric_matrix
+from base.SO3 import SO3
+from base.SO3 import skew_symmetric_matrix
 
 
 class KalmanFilterSO3:

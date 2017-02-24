@@ -5,7 +5,8 @@ sys.path.insert(1, os.path.join(sys.path[0], '..'))
 import numpy as np
 import json
 
-from data_source.interface import Interface
+from data_source.interface import DataSourceInterface
+from base.noise import *
 
 class SimulatedDeviceInterface:
     """
@@ -72,26 +73,31 @@ class ConfigParser:
 
     """
     def __init__(self, filename):
-        self._accelerometer = None
-        self._gyroscope = None
-        self._magnetometer = None
-        self._initial_orientation = None
-        self._entries = None
         self._ready = False
+
+        self._accel_noise = None
+        self._gyro_noise = None
+        self._gyro_bias = None
+        self._mag_noise = None
+        self._mag_bias = None
+        self._gravity = None
+        self._magnetic_field = None
+        self._initial_orientation = None
+        self._turn_rates = []
 
         with open(filename, 'r') as f:
             object_list = json.load(f)
-            print(json_object)
-            self._process_json()
+            print(object_list)
+            self._process_json(object_list)
 
     def get_accelerometer(self):
-        return self._accelerometer
+        return Accelerometer(self._accel_noise, self._gravity)
 
     def get_gyroscope(self):
-        return self._gyroscope
+        return Gyroscope(self._gyro_noise, self._gyro_bias)
 
     def get_magnetometer(self):
-        return self._magnetometer
+        return Magnetometer(self._mag_noise, self._mag_bias)
 
     def get_initial_orientation(self):
         return self._initial_orientation
@@ -100,51 +106,75 @@ class ConfigParser:
         """
         :return a list of dict {"time", "value"}, in ascending order of time
         """
-        return self._entries
+        return self._turn_rates
 
     def ready(self):
         return self._ready
+
+    def _build_noise(self, noise_descriptions):
+        """
+        :param noise_descriptions a list of dict
+        """
+        result = CompositeNoise()
+        for nd in noise_descriptions:
+            noise_type = nd["type"]
+            noise_weight = nd["weight"]
+            noise_param = nd["parameter"]
+            if ("gaussian" == noise_type):
+                noise = GaussianNoise.from_parameter(noise_param)
+            elif ("uniform" == noise_type):
+                noise = UniformNoise.from_parameter(noise_param)
+            else:
+                raise RuntimeError("Unknown noise type: {}".format(noise_type))
+
+            result.register_noise(noise, noise_weight)
+        print("=== build noise ===")
+        print(result)
+        return result
 
     def _process_json(self, object_list):
         """
         """
         for item in object_list:
             item_type = item["type"]
-            if ("accelerometer" == item_type):
-                pass
-            elif ("gyroscope" == item_type):
-                pass
-            elif ("magnetometer" == item_type):
-                pass
+            item_value = item["value"]
+            print("item_type is {}".format(item_type))
+            print("item_value is {}\n{}".format(type(item_value), item_value))
+            if ("accelerometer_noise" == item_type):
+                self._accel_noise = self._build_noise(item_value)
+            elif ("gyroscope_noise" == item_type):
+                self._gyro_noise = self._build_noise(item_value)
+            elif ("gyroscope_bias" == item_type):
+                self._gyro_bias = item_value
+            elif ("magnetometer_noise" == item_type):
+                self._mag_noise = self._build_noise(item_value)
+            elif ("magnetometer_bias" == item_type):
+                self._mag_bias = item_value
             elif ("gravity" == item_type):
-                pass
+                self._gravity = item_value
             elif ("magnetic_field" == item_type):
-                pass
+                self._magnetic_field = item_value
             elif ("initial_orientation" == item_type):
-                pass
-            elif ("turn_rate" == item_type):
-                pass
+                self._initial_orientation = SO3.exp(item_value)
+            elif ("turn_rate" == item_type): # there can be multiple instances
+                self._turn_rates.append(item_value)
             else:
-                raise RuntimeError("Unknown type: {}".format(item_type))
+                raise RuntimeError("Unknown json object type: {}".format(item_type))
 
 
-        self._ready = (self._accelerometer is not None) and \
-                      (self._gyroscope is not None) and \
-                      (self._magnetometer is not None) and \
+        self._ready = (self._accel_noise is not None) and \
+                      (self._gyro_noise is not None) and \
+                      (self._gyro_bias is not None) and \
+                      (self._mag_noise is not None) and \
+                      (self._mag_bias is not None) and \
+                      (self._gravity is not None) and \
+                      (self._magnetic_field is not None) and \
                       (self._initial_orientation is not None) and \
-                      (self._turn_rates is not None) and \
                       (len(self._turn_rates) > 1)
 
         if (self._ready):
             # sort turn_rates
             pass
-        else:
-            self._accelerometer = None
-            self._gyroscope = None
-            self._magnetometer = None
-            self._initial_orientation = None
-            self._turn_rates = None
-
 
 class Simulator(DataSourceInterface):
     """
@@ -156,7 +186,7 @@ class Simulator(DataSourceInterface):
         """
         cp = ConfigParser(config_filename)
 
-        if (not cp.ready())
+        if (not cp.ready()):
             raise RuntimeError('Cannot parse config file')
 
         self._R_from_body_to_world = cp.get_initial_orientation()
@@ -214,4 +244,4 @@ class Simulator(DataSourceInterface):
             return self._entries[self._current_index]["value"]
 
 if (__name__ == "__main__"):
-    pass
+    cp = ConfigParser("test_config.json")

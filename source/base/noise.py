@@ -44,7 +44,7 @@ class UniformNoise:
         return random.uniform(self.lower, self.upper)
 
     @classmethod
-    def from_parameter(self, parameters):
+    def from_parameters(self, parameters):
         if (len(parameter) != 2):
             raise ValueError("Need 2 parameters.")
         return UniformNoise(lower=parameter[0], upper=parameter[1])
@@ -54,13 +54,29 @@ class CompositeNoise:
     Linear composition of different kinds of noise.
     """
     def __init__(self):
-        raise NotImplementedError('')
+        self._weights = []
+        self._noises = []
     
     def __str__(self):
-        raise NotImplementedError('')
+        result = "[CompositeNoise]\n"
+        for (w, n) in zip(self._weights, self._noises):
+            result = result + "\tweight = {}, {}\n".format(w, str(n))
+
+        return result
+
+    def register_noise(self, noise, weight):
+        self._weights.append(weight)
+        self._noises.append(noise)
 
     def get_value(self):
-        raise NotImplementedError('')
+        if (len(self._weights) < 1):
+            return None
+
+        values = []
+        for (w, n) in zip(self._weights, self._noises):
+            values.append(w * n.get_value())
+        return sum(values)
+
 
 if __name__ == '__main__':
     pass
