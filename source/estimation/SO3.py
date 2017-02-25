@@ -62,7 +62,7 @@ class SO3:
         """
         Overloading the multiplication operator,
         work either on another SO3 or a vector
-        :param other: can be either an SO3 or a 1x3 numpy array
+        :param other: can be either an SO3 or a numpy array
         :return: same type as the input
         """
         if isinstance(other, self.__class__):
