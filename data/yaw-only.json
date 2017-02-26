@@ -1,0 +1,79 @@
+[
+    {
+        "type"  : "accelerometer_noise",
+        "value" :
+            [
+                { "type"  : "gaussian", "weight": 0.09, "parameters" : [[0, 0, 0], [1, 1, 1]] },
+                { "type"  : "uniform",  "weight": 0.02, "parameters" : [[-1, -1, -1], [1, 1, 1]] }
+            ],
+        "comment": "additive noise in all three channels; noise samples are in m/(s*s)"
+    },
+
+    {
+        "type"  : "gyroscope_noise",
+        "value" :
+            [
+                { "type"  : "gaussian", "weight": 0.005, "parameters" : [[0, 0, 0], [1, 1, 1]] },
+                { "type"  : "uniform",  "weight": 0.001, "parameters" : [[-1, -1, -1], [1, 1, 1]] }
+            ],
+        "comment": "additive noise in all three channels; noise samples are in rad/s"
+    },
+
+    {
+        "type"  : "gyroscope_bias",
+        "value" : [0.01, 0.015, -0.05],
+        "comment": "additive static bias in all three channels; units are rad/s"
+    },
+
+    {
+        "type"  : "magnetometer_noise",
+        "value" :
+            [
+                { "type"  : "gaussian", "weight": 0.5, "parameters" : [[0, 0, 0], [1, 1, 1]] },
+                { "type"  : "uniform",  "weight": 0.2, "parameters" : [[-1, -1, -1], [1, 1, 1]] }
+            ],
+        "comment": "additive noise in all three channels; noise samples are in 1e-6T"
+    },
+
+    {
+        "type"  : "magnetometer_bias",
+        "value" : [12, -7, 53],
+        "comment": "additive static bias in all three channels; units are 1e-6T"
+    },
+
+    {
+        "type"  : "gravity",
+        "value" : [0, 0, -9.81],
+        "comment": "gravity in world reference frame; units are m/(s*s)"
+    },
+
+    {
+        "type"  : "magnetic_field",
+        "value" : [50, 0, 0],
+        "comment": "earth magnetic field in world reference frame; units are 1e-6T"
+    },
+
+    {
+        "type"  : "initial_orientation",
+        "value" : [0, 0, 0],
+        "comment": "rotation from device to world at initial stage; using so3 representation"
+    },
+
+    {
+        "type"  : "turn_rates",
+        "value" :
+            [
+                { "time"  :  0.0, "value" : [ 0.0,  0.0,  0.0] },
+                { "time"  :  1.0, "value" : [ 0.0,  0.0,  1.0] },
+                { "time"  :  3.0, "value" : [ 0.0,  0.0, -1.0] },
+                { "time"  :  5.0, "value" : [ 0.0,  1.0,  0.0] },
+                { "time"  :  7.0, "value" : [ 0.0, -1.0,  0.0] },
+                { "time"  :  9.0, "value" : [ 1.0,  0.0,  0.0] },
+                { "time"  : 11.0, "value" : [-1.0,  0.0,  0.0] },
+                { "time"  : 13.0, "value" : [ 0.0,  0.0,  0.0] },
+                { "time"  : 19.0, "value" : [ 0.0,  0.0,  1.0] },
+                { "time"  : 23.0, "value" : [ 0.0,  0.0,  0.0] }
+            ],
+        "comment": "history of body-frame turn rates; units are rad/s. Each entry applies to [this_timestamp, next_timestamp)"
+    }
+]

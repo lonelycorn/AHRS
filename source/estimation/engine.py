@@ -29,7 +29,7 @@ class Engine:
         Could be used as a hacky way to advance the internal state machine,
         but only in the simulation.
         '''
-        if (self._state < Engine.STATE_CALIBRATE_STATIC)
+        if (self._state < Engine.STATE_CALIBRATE_STATIC):
             self._state = Engine.STATE_CALIBRATE_STATIC
         self._mag_bias = mag_bias
         self._mag_intensity = mag_intensity
@@ -61,6 +61,21 @@ class Engine:
         if (self._state < Engine.STATE_RUNNING):
             return None
         return self._initial_transform * self._filter.get_estimate()
+
+    def get_state_string(self):
+        """
+        :return a string representing the internal state.
+        """
+        if (self._state == Engine.STATE_INIT):
+            return "Init"
+        elif (self._state == Engine.STATE_CALIBRATE_MOVING):
+            return "Moving calibration (magnetometer)"
+        elif (self._state == Engine.STATE_CALIBRATE_STATIC):
+            return "Static calibration (gyroscope and accelerometer)"
+        elif (self._state == Engine.STATE_RUNNING):
+            return "Running"
+        else:
+            raise RuntimeError("Invalid state: {}".format(self._state))
 
 if (__name__ == '__main__'):
     pass
