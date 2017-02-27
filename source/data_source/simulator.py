@@ -192,11 +192,11 @@ class Simulator(DataSourceInterface):
     """
     Simulate 3D rotation based on a provided config file
     """
-    def __init__(self, config_filename, update_frequency=1000, report_frequency=100):
+    def __init__(self, config_filename, update_frequency=1000, sample_frequency=100):
         """
         :param config_filename  URI to the simulation config file.
         :param update_frequency frequency to update the internal kinematics; in Hz.
-        :param report_frequency frequency to report sensor measurements; in Hz.
+        :param sample_frequency frequency to report sensor measurements; in Hz.
         """
         cp = ConfigParser(config_filename)
 
@@ -214,13 +214,13 @@ class Simulator(DataSourceInterface):
         self._report_time = 0
 
         self._update_interval = 1.0 / update_frequency
-        self._report_interval = 1.0 / report_frequency
+        self._sample_interval = 1.0 / sample_frequency
 
     def read(self):
         if (self.eof()):
             return None
 
-        self._report_time += self._report_interval
+        self._report_time += self._sample_interval
 
         stop_threshold = 0.5 * self._update_interval
         while (np.abs(self._time  - self._report_time) > stop_threshold):

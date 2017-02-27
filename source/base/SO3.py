@@ -11,25 +11,41 @@ def skew_symmetric_matrix(v):
     :param v: 1D numpy array of the input vector
     :return: 3x3 numpy array of the skew symmetric matrix
     """
-    return np.array([[0.0, -v[2], v[1]],
-                     [v[2], 0.0, -v[0]],
-                     [-v[1], v[0], 0.0]])
+    return np.array([[  0.0, -v[2],  v[1]],
+                     [ v[2],   0.0, -v[0]],
+                     [-v[1],  v[0],  0.0]],
+                    dtype=np.float)
 
 
-def rodrigues(v):
+def rodrigues(axis, angle=None):
     """
     Rodrigues' rotation formula.
     See https://en.wikipedia.org/wiki/Rodrigues'_rotation_formula
-    :param v: 1D numpy array, axis-angle representation of the rotation
+    :param axis: 1D numpy array, the axis of the rotation.
+    :param theta: the rotation angle about v, in ccw. if None,
+        the angle is given by the norm of axis.
     :return: 3x3 numpy array of the rotation matrix
     """
-    theta = np.linalg.norm(v)
-    if theta < TOLERANCE:
-        A = 1.0 - theta**2 / 6.0
-        B = 0.5 - theta**2 / 24.0
+    v = np.array(axis, dtype=np.float)
+
+    if (angle is None):
+        # angle is given by the norm 
+        theta = np.linalg.norm(v)
+        if (theta < TOLERANCE): # Taylor expansion
+            A = 1.0 - theta**2 / 6.0 + theta**4 / 120.0
+            B = 0.5 - theta**2 / 24.0 + theta**4 / 720.0
+        else: # normal case
+            A = np.sin(theta) / theta
+            B = (1.0 - np.cos(theta)) / theta**2
     else:
-        A = np.sin(theta) / theta
-        B = (1.0 - np.cos(theta)) / theta**2
+        # make sure that v is a unit vector 
+        v /= np.linalg.norm(v)
+        theta = angle
+        if (theta < 0):
+            theta = -theta
+            v = -v
+        A = np.sin(theta)
+        B = (1.0 - np.cos(theta))
 
     K = skew_symmetric_matrix(v)
     return np.eye(3) + np.dot(A, K) + np.dot(B, np.dot(K, K))
