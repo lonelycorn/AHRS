@@ -246,11 +246,16 @@ class Simulator(DataSourceInterface):
         # we need to check if there is enough data for the next read
         return (self._current_index + 1 >= len(self._turn_rates))
 
-    def get_true_orientation(self):
+    @property
+    def true_orientation(self):
         """
         :return rotation from body to world, in SO3 representation.
         """
         return copy.deepcopy(self._R_from_body_to_world)
+
+    @property
+    def time(self):
+        return self._time
 
     def _get_turn_rate(self, t):
         """

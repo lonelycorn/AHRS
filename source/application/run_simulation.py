@@ -57,6 +57,7 @@ if (__name__ == "__main__"):
     plotter = Plotter(shared_data)
 
     interval = 1.0 / args.plot_freq
+    last_plot_time = 0
     # we really should use this to draw... but the async update doesn't really draw...
     #update_plot(plotter, interval)
 
@@ -67,17 +68,20 @@ if (__name__ == "__main__"):
         gyro = data["gyro"]
         accel = data["accel"]
         mag = data["mag"]
-        true_orientation = simulator.get_true_orientation()
+        true_orientation = simulator.true_orientation
         print("t = %.2f s, yaw = %.2f deg, pitch = %.2f deg, roll = %.2f deg\n" %\
               (t, true_orientation.get_yaw() * 180.0 / np.pi,
                true_orientation.get_pitch() * 180.0 / np.pi,
                true_orientation.get_roll() * 180.0 / np.pi))
 
-        shared_data.set_true_orientation(true_orientation)
+        shared_data.true_orientation = true_orientation
+        shared_data.time = simulator.time
         
         # FIXME: using this until we figured out why the async update doesn't work...
-        plotter.draw()
-        input("Press Enter to continue")
+        if (simulator.time > last_plot_time + interval):
+            plotter.draw()
+            input("Press Enter to continue")
+            last_plot_time = simulator.time
 
     print("Simulation ended.")
 

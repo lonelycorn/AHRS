@@ -12,10 +12,13 @@ from base.SO3 import rodrigues, SO3
 from visualization.visualization_camera import VisualizationCamera
 
 class PlotterSharedData:
-    
+    """
+    Shared data between the visualization context and the application context.
+    """
     def __init__(self):
         self._lock = RLock()
         self._stopped = False
+        self._time = 0.0
         self._true_orientation = SO3()
         self._estimated_orientation = SO3()
 
@@ -25,12 +28,26 @@ class PlotterSharedData:
     def release_lock(self):
         self._lock.release()
 
-    def get_true_orientation(self):
+    @property
+    def time(self):
+        with self._lock:
+            # POD's don't need the extra copy
+            return self._time
+
+    @time.setter
+    def time(self, t):
+        with self._lock:
+            # POD's don't need the extra copy
+            self._time = t * 1.0
+
+    @property
+    def true_orientation(self):
         with self._lock:
             result = copy.deepcopy(self._true_orientation)
             return result
 
-    def set_true_orientation(self, R):
+    @true_orientation.setter
+    def true_orientation(self, R):
         with self._lock:
             self._true_orientation = copy.deepcopy(R)
 
@@ -41,7 +58,20 @@ class PlotterSharedData:
     @property
     def stopped(self):
         with self._lock:
+            # POD's don't need the extra copy
             return self._stopped
+
+    @property
+    def estimated_orientation(self):
+        with self._lock:
+            result = copy.deepcopy(self._estimated_orientation)
+            return result
+
+    @estimated_orientation.setter
+    def estimated_orientation(selfl, R):
+        with self._lock:
+            self._estimated_orientation = copy.deepcopy(R)
+
 
 
 class Plotter:
@@ -98,21 +128,15 @@ class Plotter:
     def stopped(self):
         return self._shared_data.stopped
 
-    def draw(self):
+    def _get_frame_axes(self, R_from_body_to_world, scale=1.0):
         """
-        Visualize shared data
+        calculate the axes of the reference frame which is transformed through R
         """
-        R_from_body_to_world = self._shared_data.get_true_orientation()
-
-        body_frame_scale = 0.5
-        axis_width = 5
-
-        # calculate the new body ref frame in world
-        axis_x = R_from_body_to_world * self._axis_x * body_frame_scale + self._offset
-        axis_y = R_from_body_to_world * self._axis_y * body_frame_scale + self._offset
-        axis_z = R_from_body_to_world * self._axis_z * body_frame_scale + self._offset
-        origin = R_from_body_to_world * self._origin * body_frame_scale + self._offset
-
+        axis_x = R_from_body_to_world * self._axis_x * scale + self._offset
+        axis_y = R_from_body_to_world * self._axis_y * scale + self._offset
+        axis_z = R_from_body_to_world * self._axis_z * scale + self._offset
+        origin = R_from_body_to_world * self._origin * scale + self._offset
+        
         points = [axis_x, axis_y, axis_z, origin]
         points = self._camera.project_points(points)
 
@@ -122,38 +146,59 @@ class Plotter:
         body_axis_y_2 = [points[3][1], points[1][1]]
         body_axis_z_1 = [points[3][0], points[2][0]]
         body_axis_z_2 = [points[3][1], points[2][1]]
+        
+        return (body_axis_x_1, body_axis_x_2,
+                body_axis_y_1, body_axis_y_2,
+                body_axis_z_1, body_axis_z_2)
 
+    def draw(self):
+        """
+        Visualize shared data
+        """
+        body_frame_scale = 0.5
+        body_axis_width = 10
+        world_axis_width = 5
+
+        plt.clf()
+
+        # true body ref frame
+        R_from_body_to_world = self._shared_data.true_orientation
+        body_axes = self._get_frame_axes(R_from_body_to_world, body_frame_scale)
+        plt.plot(body_axes[0], body_axes[1], 'r--', linewidth=body_axis_width)
+        plt.plot(body_axes[2], body_axes[3], 'g--', linewidth=body_axis_width)
+        plt.plot(body_axes[4], body_axes[5], 'b--', linewidth=body_axis_width)
+
+        # estimated body ref frame
+        R_from_body_to_world = self._shared_data.estimated_orientation
+        body_axes = self._get_frame_axes(R_from_body_to_world, body_frame_scale)
+        plt.plot(body_axes[0], body_axes[1], 'r-', linewidth=body_axis_width)
+        plt.plot(body_axes[2], body_axes[3], 'g-', linewidth=body_axis_width)
+        plt.plot(body_axes[4], body_axes[5], 'b-', linewidth=body_axis_width)
 
         # world ref frame
-        axis_x = self._axis_x + self._offset
-        axis_y = self._axis_y + self._offset
-        axis_z = self._axis_z + self._offset
-        origin = self._origin + self._offset
-        points = [axis_x, axis_y, axis_z, origin]
-        points = self._camera.project_points(points)
-
-        world_axis_x_1 = [points[3][0], points[0][0]]
-        world_axis_x_2 = [points[3][1], points[0][1]]
-        world_axis_y_1 = [points[3][0], points[1][0]]
-        world_axis_y_2 = [points[3][1], points[1][1]]
-        world_axis_z_1 = [points[3][0], points[2][0]]
-        world_axis_z_2 = [points[3][1], points[2][1]]
+        R_from_body_to_world = SO3()
+        body_axes = self._get_frame_axes(R_from_body_to_world)
+        plt.plot(body_axes[0], body_axes[1], 'r--', linewidth=world_axis_width)
+        plt.plot(body_axes[2], body_axes[3], 'g--', linewidth=world_axis_width)
+        plt.plot(body_axes[4], body_axes[5], 'b--', linewidth=world_axis_width)
 
         # visualization 
-        plt.clf()
+        """
         axes = plt.plot(body_axis_x_1, body_axis_x_2, 'r-', \
                         body_axis_y_1, body_axis_y_2, 'g-', \
                         body_axis_z_1, body_axis_z_2, 'b-', \
                         world_axis_x_1, world_axis_x_2, 'r--', \
                         world_axis_y_1, world_axis_y_2, 'g--', \
                         world_axis_z_1, world_axis_z_2, 'b--')
-
         plt.setp(axes, 'linewidth', axis_width)
-        plt.grid(True)
+        """
         plt.ylim((-VIEW_RANGE, VIEW_RANGE))
         plt.xlim((-VIEW_RANGE, VIEW_RANGE))
         plt.axes().set_aspect('equal')
+
+        # all the plots are overlayed, so long as draw() has not been caleed.
         plt.draw()
+        plt.title("time = %.2f s" % (self._shared_data.time))
         plt.show(block=False)
 
 if (__name__ == '__main__'):
