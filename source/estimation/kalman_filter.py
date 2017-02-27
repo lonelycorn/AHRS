@@ -6,7 +6,6 @@ import numpy as np
 from base.SO3 import SO3
 from base.SO3 import skew_symmetric_matrix
 
-
 class KalmanFilterSO3:
     """
     Extended Kalman Filter for estimation of rotations

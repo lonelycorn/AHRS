@@ -3,7 +3,7 @@ import os
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
 import numpy as np
-from estimation.config import TOLERANCE
+from base.config import TOLERANCE
 
 def skew_symmetric_matrix(v):
     """
