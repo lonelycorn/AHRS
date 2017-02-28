@@ -5,7 +5,7 @@ sys.path.insert(1, os.path.join(sys.path[0], '..'))
 import numpy as np
 
 from base.SO3 import SO3
-from base.low_pass_filter import LowPassFilter
+from base.simple_filter import LowPassFilter
 from estimation.magnetometer_calibrator import MagnetometerCalibrator
 from estimation.kalman_filter import KalmanFilterSO3
 
