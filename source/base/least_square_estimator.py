@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 
 class LeastSquareEstimator:
     '''
@@ -30,10 +31,10 @@ class LeastSquareEstimator:
         self._P = 1.0 / self._alpha * (self._P - np.dot(self._P, np.dot(np.outer(phi, phi), self._P)) / denom)
 
     def get_estimate_mean(self):
-        return self._theta
+        return copy.deepcopy(self._theta)
 
     def get_estimate_covar(self):
-        return self._P
+        return copy.deepcopy(self._P)
 
 if (__name__ == '__main__'):
     pass

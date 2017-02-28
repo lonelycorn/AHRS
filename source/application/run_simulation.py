@@ -68,6 +68,9 @@ if (__name__ == "__main__"):
         gyro = data["gyro"]
         accel = data["accel"]
         mag = data["mag"]
+
+        estimator.update(t, gyro, accel, mag)
+
         true_orientation = simulator.true_orientation
         print("t = %.2f s, yaw = %.2f deg, pitch = %.2f deg, roll = %.2f deg\n" %\
               (t, true_orientation.get_yaw() * 180.0 / np.pi,
