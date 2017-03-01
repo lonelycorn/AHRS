@@ -35,8 +35,8 @@ class TestKalmanFilterSO3(unittest.TestCase):
         R_est = self._kf.get_estimate_mean().get_matrix()
         P_est = self._kf.get_estimate_covar()
 
-        R_true = np.array([[np.cos(0.1), -np.sin(0.1), 0.0],
-                           [np.sin(0.1), np.cos(0.1), 0.0],
+        R_true = np.array([[np.cos(0.1), np.sin(0.1), 0.0],
+                           [-np.sin(0.1), np.cos(0.1), 0.0],
                            [0.0, 0.0, 1.0]])
         P_true = 0.01 * 0.01 * np.eye(3)
 
@@ -50,6 +50,9 @@ class TestKalmanFilterSO3(unittest.TestCase):
         # TODO: no value checking for now
         acc_meas = np.array([0.0, -1.0, 0.0])
         self._kf.acc_update(acc_meas)
+
+        mag_meas = np.array([0.0, 1.0, 0.0])
+        self._kf.mag_update(mag_meas)
 
         self.assertTrue(True)
 

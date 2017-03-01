@@ -12,7 +12,8 @@ class KalmanFilterSO3:
     Simple version, no consideration of sensor drifting, bias, etc.
     """
 
-    def __init__(self, R0, P0, gyro_cov, acc_cov, mag_cov, gravity, mag_field):
+    def __init__(self, R0=None, P0=None, gyro_cov=None, acc_cov=None, mag_cov=None,
+                 gravity=None, mag_field=None):
         """
         :param R0: Initial mean of the state, 3x3 matrix
         :param P0: Initial covariance of the state, 3x3 matrix
@@ -22,7 +23,11 @@ class KalmanFilterSO3:
         :param gravity: Gravity in world frame (fixed)
         :param mag_field: Magnetic field in world frame (fixed)
         """
-        self._R_from_world_to_body = SO3(R0)
+        if R0 is None:
+            self._R_from_world_to_body = SO3()
+        else:
+            self._R_from_world_to_body = SO3(R0)
+
         self._P = P0
         self._P_gyro = gyro_cov
         self._P_acc = acc_cov
@@ -30,24 +35,56 @@ class KalmanFilterSO3:
         self._g = gravity
         self._m0 = mag_field
 
+    def set_initial_pose(self, R0, P0):
+        """
+        :param R0: Initial mean of the state, 3x3 matrix
+        :param P0: Initial covariance of the state, 3x3 matrix
+        """
+        self._R_from_world_to_body = SO3(R0)
+        self._P = P0
+
+    def set_sensor_covar(self, gyro_cov, acc_cov, mag_cov):
+        """
+        :param gyro_cov: 3x3 covariance matrix of the gyro measurement
+        :param acc_cov: 3x3 covariance matrix of the accelerometer measurement
+        :param mag_cov: 3x3 covariance matrix of the magnetometer measurement
+        """
+        self._P_gyro = gyro_cov
+        self._P_acc = acc_cov
+        self._P_mag = mag_cov
+
+    def set_references(self, gravity_ref, mag_ref):
+        """
+        :param gravity_ref: gravity reference in world/initial frame
+        :param mag_ref: magnetic field reference in world/initial frame
+        """
+        self._g = gravity_ref
+        self._m0 = mag_ref
+
     def get_estimate_mean(self):
         return self._R_from_world_to_body
 
     def get_estimate_covar(self):
         return self._P
 
-    def process_update(self, om, dt):
+    def get_estimate(self):
+        return self._R_from_world_to_body, self._P
+
+    def process_update(self, om, dt, covar=None):
         """
         Update the rotation with gyroscope measurements,
         i.e. angular velocities
         :param om: 1x3 numpy array of angular velocity
         :param dt: time interval
         """
-        R1 = SO3.exp(om * dt)
+        R1 = SO3.exp(-om * dt)
         self._R_from_world_to_body = R1 * self._R_from_world_to_body
 
         R1 = R1.get_matrix()
-        self._P = dt ** 2 * self._P_gyro + np.dot(R1, np.dot(self._P, R1))
+        if covar is None:
+            self._P = dt ** 2 * self._P_gyro + np.dot(R1, np.dot(self._P, R1))
+        else:
+            self._P = dt ** 2 * covar + np.dot(R1, np.dot(self._P, R1))
 
     def measurement_update(self, J, cov_meas, v):
         """
@@ -64,11 +101,12 @@ class KalmanFilterSO3:
         self._R_from_world_to_body = SO3.exp(np.dot(K, v)) * self._R_from_world_to_body
         self._P = np.dot(np.eye(3) - K, self._P)
 
-    def acc_update(self, acc_meas):
+    def acc_update(self, acc_meas, acc_covar=None):
         """
         Use accelerometer measurement for update
         Simplest model, ignoring bias and body acceleration
         :param acc_meas: measurement of the acceleration
+        :param acc_covar: accelerometer covariance if different from default
         """
         # calculate the predicted acceleration
         acc_pred = self._R_from_world_to_body * self._g
@@ -77,12 +115,16 @@ class KalmanFilterSO3:
         Ja = -skew_symmetric_matrix(acc_pred)
 
         # perform measurement update
-        self.measurement_update(Ja, self._P_acc, acc_meas - acc_pred)
+        if acc_covar is None:
+            self.measurement_update(Ja, self._P_acc, acc_meas - acc_pred)
+        else:
+            self.measurement_update(Ja, acc_covar, acc_meas - acc_pred)
 
-    def mag_update(self, mag_meas):
+    def mag_update(self, mag_meas, mag_covar=None):
         """
         Use magnetometer measurement for update
         Simplest model, ignoring bias, drifting, ant etc.
+        :param mag_covar: magnetometer covariance if different from default
         :param mag_meas: measurement of the magnetic field
         """
         # calculate the predicted magnetic field
@@ -92,7 +134,10 @@ class KalmanFilterSO3:
         Jm = -skew_symmetric_matrix(mag_pred)
 
         # perform measurement update
-        self.measurement_update(Jm, self._P_mag, mag_meas - mag_pred)
+        if mag_covar is None:
+            self.measurement_update(Jm, self._P_mag, mag_meas - mag_pred)
+        else:
+            self.measurement_update(Jm, mag_covar, mag_meas - mag_pred)
 
 
 if (__name__ == "__main__"):

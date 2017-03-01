@@ -68,7 +68,7 @@ class PlotterSharedData:
             return result
 
     @estimated_orientation.setter
-    def estimated_orientation(selfl, R):
+    def estimated_orientation(self, R):
         with self._lock:
             self._estimated_orientation = copy.deepcopy(R)
 

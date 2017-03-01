@@ -112,7 +112,7 @@ class Engine:
             pass
         else:
             # invalid state -- should not happen
-            assert(false)
+            assert(False)
 
     def get_orientation_in_world(self):
         '''

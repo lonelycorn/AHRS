@@ -54,4 +54,4 @@ class LowPassFilter:
         return self._value
 
 if (__name__ == "__main__"):
-    pasa
+    pass
