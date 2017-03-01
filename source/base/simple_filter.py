@@ -25,6 +25,10 @@ class AverageFilter:
         else:
             return self._sample_sum / self._sample_count
 
+    @property
+    def count(self):
+        return self._sample_count
+
 class LowPassFilter:
     def __init__(self, low_pass_gain):
         """

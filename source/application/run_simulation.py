@@ -32,13 +32,13 @@ if (__name__ == "__main__"):
     parser.add_argument('--update-freq',
                         dest='update_freq',
                         type=int,
-                        default=100,
+                        default=500,
                         action='store',
                         help='update frequency of the simulator; in Hz.')
     parser.add_argument('--sample-freq',
                         dest='sample_freq',
                         type=int,
-                        default=10,
+                        default=50,
                         action='store',
                         help='sample frequency of the simulated sensors; in Hz.')
     parser.add_argument('--plot-freq',

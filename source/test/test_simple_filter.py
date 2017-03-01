@@ -37,9 +37,10 @@ class TestSimpleFilter(unittest.TestCase):
         values = np.ones(10)
 
         self.assertIsNone(a.value)
-        for v in values:
+        for (i, v) in enumerate(values):
             a.update(v)
             self.assertAlmostEqual(v, a.value, TestSimpleFilter.VALUE_EQUAL_PLACE)
+            self.assertEqual(a.count, i + 1)
 
     def test_average_filter_monotonic_sequence(self):
         a = AverageFilter()

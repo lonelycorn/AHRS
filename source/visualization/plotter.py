@@ -94,27 +94,8 @@ class Plotter:
 
         z_camera_in_camera = np.array([0, 0, 1], dtype=np.float)
         z_camera_in_world = -np.array(view_point, dtype=np.float)
+        rotation = SO3.from_two_directions(z_camera_in_camera, z_camera_in_world)
 
-        # axis of rotation, from z_camera_in_camera to z_camera_in_world
-        axis = np.cross(z_camera_in_camera, z_camera_in_world)
-
-        # rotation angle, from z_camera_in_camera to z_camera_in_world
-        sin_theta = np.linalg.norm(axis)
-        cos_theta = np.dot(z_camera_in_world, z_camera_in_camera)
-        theta = np.arctan2(sin_theta, cos_theta)
-
-        if (sin_theta < TOLERANCE): # special case: two axes are colinear
-            if (theta < 1.0): # view angle is 0
-                R = np.eye(3)
-            else: # view angle is pi
-                R = -np.eye(3)
-        else:
-            # use rodrigues' formula to obtain the rotation matrix
-            axis_unit = axis / np.linalg.norm(axis)
-            R = rodrigues(axis_unit, theta)
-
-        rotation = SO3(R)
-        #rotation = SO3()
         self._camera = VisualizationCamera(rotation, translation)
 
         # generate 3 axes

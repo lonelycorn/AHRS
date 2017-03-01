@@ -3,7 +3,7 @@ import os
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
 import numpy as np
-from base.config import TOLERANCE
+from base.config import ANGLE_TOLERANCE
 
 def skew_symmetric_matrix(v):
     """
@@ -31,7 +31,7 @@ def rodrigues(axis, angle=None):
     if (angle is None):
         # angle is given by the norm 
         theta = np.linalg.norm(v)
-        if (theta < TOLERANCE): # Taylor expansion
+        if (theta < ANGLE_TOLERANCE): # Taylor expansion
             A = 1.0 - theta**2 / 6.0 + theta**4 / 120.0
             B = 0.5 - theta**2 / 24.0 + theta**4 / 720.0
         else: # normal case
@@ -107,7 +107,36 @@ class SO3:
         Rz = np.array([[np.cos(yaw), -np.sin(yaw), 0.0],
                        [np.sin(yaw), np.cos(yaw), 0.0],
                        [0.0, 0.0, 1.0]])
-        return SO3(R=np.dot(Rz, np.dot(Ry, Rx)))
+        return cls(R=np.dot(Rz, np.dot(Ry, Rx)))
+
+    @classmethod
+    def from_two_directions(cls, d_f, d_t):
+        """
+        Construct an SO3 such that d_t = SO3 * d_f 
+        """
+        # first normalize input vectors
+        df = d_f / np.linalg.norm(d_f)
+        dt = d_t / np.linalg.norm(d_t)
+
+        axis = np.cross(df, dt)
+
+        # rotation angle from d_f to d_t
+        sin_theta = np.linalg.norm(axis)
+        cos_theta = np.dot(df, dt)
+        theta = np.arctan2(sin_theta, cos_theta)
+
+        if (sin_theta < np.sin(ANGLE_TOLERANCE)):
+            # special case: two directions are colinear
+            if (theta < 1.0): # theta is 0
+                R = np.eye(3)
+            else: # theta is pi
+                R = -np.eye(3)
+        else:
+            # regular case: use rodrigues' formula
+            axis_unit = axis / np.linalg.norm(axis)
+            R = rodrigues(axis_unit, theta)
+
+        return cls(R)
 
     @classmethod
     def from_so3(cls, so3):
@@ -116,7 +145,7 @@ class SO3:
         :param so3: 1x3 numpy array of the axis-angle representation
         :return: SO3 object from the so3/axis-angle representation
         """
-        return SO3(R=rodrigues(so3))
+        return cls(R=rodrigues(so3))
 
     @classmethod
     def exp(cls, so3):
@@ -126,7 +155,7 @@ class SO3:
         :param so3: 1x3 numpy array of so3
         :return: SO3 converted from so3
         """
-        return SO3.from_so3(so3)
+        return cls.from_so3(so3)
 
     def ln(self):
         """
@@ -140,7 +169,7 @@ class SO3:
 
         v = np.array([R[2, 1] - R[1, 2], R[0, 2] - R[2, 0], R[1, 0] - R[0, 1]])
 
-        if theta < 1e-5:
+        if (theta < ANGLE_TOLERANCE):
             A = (1.0 + theta**2 / 6.0) * 0.5
         else:
             A = 0.5 * theta / np.sin(theta)

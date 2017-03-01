@@ -29,6 +29,22 @@ class TestSO3(unittest.TestCase):
         self.assertAlmostEqual(rot.get_pitch(), pitch, places=default_tol_place)
         self.assertAlmostEqual(rot.get_yaw(), yaw, places=default_tol_place)
 
+    def test_two_directions_constructor_opposite(self):
+        d_f = np.array([ -9.41427684e-03, -7.26582309e-03, 9.78452150e+00], dtype=np.float)
+        d_t = np.array([0, 0, -9.81], dtype=np.float)
+
+        R = SO3.from_two_directions(d_f, d_t)
+
+        sum_error = 0
+        for (x1, x2) in zip(d_t, R * d_f):
+            sum_error += np.sqrt((x1 - x2)**2)
+
+        d_t_recovered = R * d_f
+
+        sin_theta = np.cross(d_t, d_t_recovered) / np.linalg.norm(d_t) / np.linalg.norm(d_t_recovered)
+        sin_theta = np.linalg.norm(sin_theta)
+        self.assertAlmostEqual(sin_theta, 0, default_tol_place)
+
     def test_inverse(self):
         rot = SO3.from_euler(0.1, -0.2, 0.3)
         tmp = np.dot(rot.get_matrix(), rot.inverse().get_matrix())
