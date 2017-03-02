@@ -11,9 +11,11 @@ from estimation.kalman_filter import KalmanFilterSO3
 
 class Engine:
     GYRO_NO_MOTION_THRESHOLD = 0.1
-    ACCEL_NO_MOTION_THRESHOLD = 9.9
+    ACCEL_NO_MOTION_THRESHOLD = 10.0 # FIXME we may need a bigger value
     LOWPASS_GAIN = 0.9
     STATIC_CAL_SAMPLE_COUNT = 200
+    SENSOR_COVAR_AMPLIFIER = 2.0 # covar obtained after static calibration would be amplified for better stability
+    INITIAL_POSE_COVAR = 1e1 # diagonal
 
     STATE_INIT = 0
     STATE_CALIBRATE_MOVING = 1 # for mag bias
@@ -21,9 +23,7 @@ class Engine:
     STATE_RUNNING = 3
 
     def __init__(self):
-        # FIXME: disabled until we figured out how to use it.
-        self._filter = None
-        #self._filter = KalmanFilterSO3() # estimates the transform from current chip to initial chip
+        self._filter = KalmanFilterSO3() # estimates the transform from current chip to initial chip
 
         self._gyro_lp = LowPassFilter(Engine.LOWPASS_GAIN)
         self._accel_lp = LowPassFilter(Engine.LOWPASS_GAIN)
@@ -33,12 +33,9 @@ class Engine:
         self._mag_avg = AverageFilter()
 
         self._mag_calibrator = MagnetometerCalibrator(np.zeros(3))
+
         self._state = Engine.STATE_INIT
-        self._accel_ref = None
-        self._mag_ref = None
-        self._mag_bias = None
-        self._gyro_bias = None
-        self._initial_transform = None # transform from initial body frame to world frame
+        self._last_update_time = 0.0
 
     def set_mag_param(self, mag_bias):
         '''
@@ -65,54 +62,78 @@ class Engine:
         no_motion = self._check_no_motion(gyro, accel)
 
         if (self._state == Engine.STATE_INIT):
-            print("[EngineState] INIT")
             # wait until starts to move
             if (not no_motion):
-                print("[EngineState] transit to CALIBRATE_MOVING")
+                print("[EngineState] transit from INIT to CALIBRATE_MOVING")
                 self._state = Engine.STATE_CALIBRATE_MOVING
 
         elif (self._state == Engine.STATE_CALIBRATE_MOVING):
-            print("[EngineState] CALIBRATE_MOVING")
             self._mag_calibrator.update(mag)
             self._mag_bias = self._mag_calibrator.bias
             # wait until found bias, and stopped moving
             if ((self._mag_bias is not None) and \
                 (no_motion)):
-                print("[EngineState] transit to CALIBRATE_STATIC")
+                print("[EngineState] transit from CALIBRATE_MOVING to CALIBRATE_STATIC")
                 print("mag bias is {}".format(self._mag_bias))
                 self._state = Engine.STATE_CALIBRATE_STATIC
 
         elif (self._state == Engine.STATE_CALIBRATE_STATIC):
-            print("[EngineState] CALIBRATE_STATIC")
-            if (no_motion):
+            if (no_motion): # only update when device is stationary
                 done = self._update_static_calibration(gyro, accel, mag)
                 if (done):
-                    # acceleration is in the opposite direction of the corresponding inertial force
-                    gravity_in_world = np.array([0, 0, 9.81], dtype=np.float)
+                    # NOTE: acceleration is in the opposite direction of the corresponding inertial force
                     gravity_in_body = self._accel_avg.value
-                    self._initial_transform = SO3.from_two_directions(gravity_in_body, gravity_in_world)
-                    self._accel_ref = self._accel_avg.value
-                    self._mag_ref = self._mag_avg.value
-                    self._gyro_bias = self._gyro_avg.value
+                    gravity_in_world = np.array([0, 0, 1], dtype=np.float) * np.linalg.norm(gravity_in_body)
+                    R_from_body_to_world = SO3.from_two_directions(gravity_in_body, gravity_in_world)
+                    initial_pose_covar = np.eye(3) * Engine.INITIAL_POSE_COVAR
+
+                    gyro_bias = self._gyro_avg.value
+                    gyro_covar = self._gyro_avg.covar * Engine.SENSOR_COVAR_AMPLIFIER
+
+                    accel_covar = self._accel_avg.covar * Engine.SENSOR_COVAR_AMPLIFIER
+                    
+                    mag_ref = R_from_body_to_world.inverse() * self._mag_avg.value
+                    mag_covar = self._mag_avg.covar * Engine.SENSOR_COVAR_AMPLIFIER
+
+                    # initialize the kalman filter here.
+                    self._filter.set_initial_pose(R_from_body_to_world, initial_pose_covar)
+                    self._filter.set_sensor_covar(gyro_covar, accel_covar, mag_covar)
+                    self._filter.set_references(gravity_in_world, mag_ref)
+
                     self._state = Engine.STATE_RUNNING
 
-                    print("[EngineState] transit to RUNNING")
+                    print("[EngineState] transit from CALIBRATE_STATIC to RUNNING")
                     print("initial orientation = {}\nroll = {}, pitch = {}, yaw = {}".format(
-                        self._initial_transform.ln(), self._initial_transform.get_roll(),
-                        self._initial_transform.get_pitch(), self._initial_transform.get_yaw()))
-                    print("accel ref = {}".format(self._accel_ref))
-                    print("mag ref = {}".format(self._mag_ref))
-                    print("gyro bias = {}".format(self._gyro_bias))
+                        R_from_body_to_world.ln(), R_from_body_to_world.get_roll(),
+                        R_from_body_to_world.get_pitch(), R_from_body_to_world.get_yaw()))
+                    print("gravity in world = {}".format(gravity_in_world))
+                    print("gyro bias = {}".format(gyro_bias))
+                    print("gyro covar = \n{}".format(gyro_covar))
+                    print("accel covar = \n{}".format(accel_covar))
+                    print("mag ref = {}".format(mag_ref))
+                    print("mag covar = {}".format(mag_covar))
                     
 
         elif (self._state == Engine.STATE_RUNNING):
+            dt = t - self._last_update_time
+
             # always do gyro update
+            self._filter.process_update(gyro, dt)
+
             # do accel update iff gravity is dominant
+            if (np.linalg.norm(accel) < Engine.ACCEL_NO_MOTION_THRESHOLD):
+                self._filter.acc_update(accel)
+
             # do mag update iff mag reading matchs mag param
-            pass
+            mag_calibrated = self._mag_calibrator.calibrate_measurement(mag)
+            if (mag_calibrated is not None):
+                self._filter.mag_update(mag_calibrated)
+                    
         else:
             # invalid state -- should not happen
             assert(False)
+
+        self._last_update_time = t
 
     def get_orientation_in_world(self):
         '''
@@ -120,7 +141,7 @@ class Engine:
         '''
         if (self._state < Engine.STATE_RUNNING):
             return None
-        return self._initial_transform * self._filter.get_estimate()
+        return self._filter.get_estimate()
 
     def get_state_string(self):
         """
@@ -129,9 +150,9 @@ class Engine:
         if (self._state == Engine.STATE_INIT):
             return "Init"
         elif (self._state == Engine.STATE_CALIBRATE_MOVING):
-            return "Moving calibration (magnetometer)"
+            return "Moving calibration"
         elif (self._state == Engine.STATE_CALIBRATE_STATIC):
-            return "Static calibration (gyroscope and accelerometer)"
+            return "Static calibration"
         elif (self._state == Engine.STATE_RUNNING):
             return "Running"
         else:

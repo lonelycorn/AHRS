@@ -19,8 +19,9 @@ class PlotterSharedData:
         self._lock = RLock()
         self._stopped = False
         self._time = 0.0
-        self._true_orientation = SO3()
-        self._estimated_orientation = SO3()
+        self._text = ""
+        self._true_orientation = None
+        self._estimated_orientation = None
 
     def acquire_lock(self):
         self._lock.acquire()
@@ -39,6 +40,18 @@ class PlotterSharedData:
         with self._lock:
             # POD's don't need the extra copy
             self._time = t * 1.0
+
+    @property
+    def text(self):
+        with self._lock:
+            # POD's don't need the extra copy
+            return self._text
+
+    @text.setter
+    def text(self, t):
+        with self._lock:
+            # POD's don't need the extra copy
+            self._text = str(t)
 
     @property
     def true_orientation(self):
@@ -113,6 +126,8 @@ class Plotter:
         """
         calculate the axes of the reference frame which is transformed through R
         """
+        print("R =\n{}, axis.shape = {}, offset = {}, scale = {}".format(R_from_body_to_world, self._axis_x.shape, self._offset, scale))
+
         axis_x = R_from_body_to_world * self._axis_x * scale + self._offset
         axis_y = R_from_body_to_world * self._axis_y * scale + self._offset
         axis_z = R_from_body_to_world * self._axis_z * scale + self._offset
@@ -144,17 +159,19 @@ class Plotter:
 
         # true body ref frame
         R_from_body_to_world = self._shared_data.true_orientation
-        body_axes = self._get_frame_axes(R_from_body_to_world, body_frame_scale)
-        plt.plot(body_axes[0], body_axes[1], 'r--', linewidth=body_axis_width)
-        plt.plot(body_axes[2], body_axes[3], 'g--', linewidth=body_axis_width)
-        plt.plot(body_axes[4], body_axes[5], 'b--', linewidth=body_axis_width)
+        if (R_from_body_to_world is not None):
+            body_axes = self._get_frame_axes(R_from_body_to_world, body_frame_scale)
+            plt.plot(body_axes[0], body_axes[1], 'r--', linewidth=body_axis_width)
+            plt.plot(body_axes[2], body_axes[3], 'g--', linewidth=body_axis_width)
+            plt.plot(body_axes[4], body_axes[5], 'b--', linewidth=body_axis_width)
 
         # estimated body ref frame
         R_from_body_to_world = self._shared_data.estimated_orientation
-        body_axes = self._get_frame_axes(R_from_body_to_world, body_frame_scale)
-        plt.plot(body_axes[0], body_axes[1], 'r-', linewidth=body_axis_width)
-        plt.plot(body_axes[2], body_axes[3], 'g-', linewidth=body_axis_width)
-        plt.plot(body_axes[4], body_axes[5], 'b-', linewidth=body_axis_width)
+        if (R_from_body_to_world is not None):
+            body_axes = self._get_frame_axes(R_from_body_to_world, body_frame_scale)
+            plt.plot(body_axes[0], body_axes[1], 'r-', linewidth=body_axis_width)
+            plt.plot(body_axes[2], body_axes[3], 'g-', linewidth=body_axis_width)
+            plt.plot(body_axes[4], body_axes[5], 'b-', linewidth=body_axis_width)
 
         # world ref frame
         R_from_body_to_world = SO3()
@@ -163,23 +180,15 @@ class Plotter:
         plt.plot(body_axes[2], body_axes[3], 'g--', linewidth=world_axis_width)
         plt.plot(body_axes[4], body_axes[5], 'b--', linewidth=world_axis_width)
 
-        # visualization 
-        """
-        axes = plt.plot(body_axis_x_1, body_axis_x_2, 'r-', \
-                        body_axis_y_1, body_axis_y_2, 'g-', \
-                        body_axis_z_1, body_axis_z_2, 'b-', \
-                        world_axis_x_1, world_axis_x_2, 'r--', \
-                        world_axis_y_1, world_axis_y_2, 'g--', \
-                        world_axis_z_1, world_axis_z_2, 'b--')
-        plt.setp(axes, 'linewidth', axis_width)
-        """
+        # axes
         plt.ylim((-VIEW_RANGE, VIEW_RANGE))
         plt.xlim((-VIEW_RANGE, VIEW_RANGE))
         plt.axes().set_aspect('equal')
 
         # all the plots are overlayed, so long as draw() has not been caleed.
-        plt.draw()
         plt.title("time = %.2f s" % (self._shared_data.time))
+        plt.text(-VIEW_RANGE, -VIEW_RANGE, self._shared_data.text, fontsize=20, color='r')
+        plt.draw()
         plt.show(block=False)
 
 if (__name__ == '__main__'):

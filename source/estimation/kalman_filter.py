@@ -15,7 +15,7 @@ class KalmanFilterSO3:
     def __init__(self, R0=None, P0=None, gyro_cov=None, acc_cov=None, mag_cov=None,
                  gravity=None, mag_field=None):
         """
-        :param R0: Initial mean of the state, 3x3 matrix
+        :param R0: Initial mean of the state, 3x3 matrix or SO3
         :param P0: Initial covariance of the state, 3x3 matrix
         :param gyro_cov: 3x3 covariance matrix of the gyro measurement
         :param acc_cov: 3x3 covariance matrix of the accelerometer measurement
@@ -23,8 +23,10 @@ class KalmanFilterSO3:
         :param gravity: Gravity in world frame (fixed)
         :param mag_field: Magnetic field in world frame (fixed)
         """
-        if R0 is None:
+        if (R0 is None):
             self._R_from_world_to_body = SO3()
+        elif (isinstance(R0, SO3)):
+            self._R_from_world_to_body = R0
         else:
             self._R_from_world_to_body = SO3(R0)
 
@@ -37,10 +39,13 @@ class KalmanFilterSO3:
 
     def set_initial_pose(self, R0, P0):
         """
-        :param R0: Initial mean of the state, 3x3 matrix
+        :param R0: Initial mean of the state, 3x3 matrix or SO3
         :param P0: Initial covariance of the state, 3x3 matrix
         """
-        self._R_from_world_to_body = SO3(R0)
+        if (isinstance(R0, SO3)):
+            self._R_from_world_to_body = R0
+        else:
+            self._R_from_world_to_body = SO3(R0)
         self._P = P0
 
     def set_sensor_covar(self, gyro_cov, acc_cov, mag_cov):

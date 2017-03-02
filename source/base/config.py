@@ -2,7 +2,7 @@
 TOLERANCE = 1e-3
 
 # special threshold for angles, in rad
-ANGLE_TOLERANCE = 1e-2 # approx 0.6 deg
+ANGLE_TOLERANCE = 5e-3 # approx 0.3 deg
 
 # location of the viewing camera. the camera points to [0, 0, 0]
 VIEW_POINT = [0, 0, 2]

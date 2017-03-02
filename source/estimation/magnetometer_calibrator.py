@@ -16,6 +16,7 @@ class MagnetometerCalibrator:
     MIN_SAMPLE_COUNT = 24
     COARSE_FACTOR = 4
     INITIAL_COVAR = 1e3
+    ERROR_MARGIN_RATIO = 0.1
 
     def __init__(self, center_guess):
         """
@@ -37,18 +38,7 @@ class MagnetometerCalibrator:
         :param mag: 3-by-1 numpy array; raw measurement from the magnetometer.
         """
         self._add_sample(mag)
-        
-        # a sphere centered at [x_c, y_c, z_c] with radius R is described by
-        # (x - x_c)**2 + (y - y_c)**2 + (z - z_c)**2 == R**2
-        # rearranging, we have
-        # [2*x, 2*y, 2*z, 1] * [x_c, y_c, z_c, d].T == x**2 + y**2 + z**2
-        # where d = R**2 - x_c**2 - y_c**2 - z_c**2
-        
-        phi = np.array([mag[0] * 2.0,
-                        mag[1] * 2.0,
-                        mag[2] * 2.0,
-                        1.0], dtype=np.float)
-        y = np.dot(mag, mag)
+        (phi, y) = self._convert_to_estimator_sample(mag)        
         self._estimator.update(phi, y)
 
         #estimate = self._estimator.get_estimate_mean()
@@ -67,6 +57,59 @@ class MagnetometerCalibrator:
             estimate = self._estimator.get_estimate_mean()
             center = np.array(estimate[0:3], dtype=np.float)
             return center
+
+    @property
+    def intensity(self):
+        """
+        :return intensity of the external magnetic field; or None if not yet available.
+        """
+        if (not self._ready()):
+            return None
+        else:
+            estimate = self._estimator.get_estimate_mean()
+            center = np.array(estimate[0:3], dtype=np.float)
+            radius = np.sqrt(estimate[3]**2 + np.dot(center, center))
+            return radius
+
+    def calibrate_measurement(self, mag, error_margin_ratio=None):
+        """
+        :return the calibrated measurement, or None if not yet calibrated, or the raw
+                measurement does not fit into the model within the specified error margin.
+        """
+        if (not self._ready()):
+            return None 
+
+        if (error_margin_ratio is None):
+            error_margin_ratio = MagnetometerCalibrator.ERROR_MARGIN_RATIO
+
+        center = self.bias
+        radius = self.intensity
+        calibrated = mag - center
+
+        error = np.abs(radius - np.linalg.norm(calibrated))
+        if (error < error_margin_ratio * radius):
+            return calibrated
+        else:
+            # possibly a corrupted measurement
+            return None
+
+    def _convert_to_estimator_sample(self, mag):
+        """
+        convert raw magnetometer measurements to estimator samples
+        :return (phi, y) the sample input and the sample output.
+        """
+        # a sphere centered at [x_c, y_c, z_c] with radius R is described by
+        # (x - x_c)**2 + (y - y_c)**2 + (z - z_c)**2 == R**2
+        # rearranging, we have
+        # [2*x, 2*y, 2*z, 1] * [x_c, y_c, z_c, d].T == x**2 + y**2 + z**2
+        # where d = R**2 - x_c**2 - y_c**2 - z_c**2
+        
+        phi = np.array([mag[0] * 2.0,
+                        mag[1] * 2.0,
+                        mag[2] * 2.0,
+                        1.0], dtype=np.float)
+        y = np.dot(mag, mag)
+        return (phi, y)
 
     def _ready(self):
         k = MagnetometerCalibrator.MIN_SAMPLE_COUNT
