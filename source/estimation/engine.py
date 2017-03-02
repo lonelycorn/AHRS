@@ -141,7 +141,7 @@ class Engine:
         '''
         if (self._state < Engine.STATE_RUNNING):
             return None
-        return self._filter.get_estimate()
+        return self._filter.get_estimate_mean().inverse()
 
     def get_state_string(self):
         """
