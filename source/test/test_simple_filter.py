@@ -40,18 +40,19 @@ class TestSimpleFilter(unittest.TestCase):
         for (i, v) in enumerate(values):
             a.update(v)
             self.assertAlmostEqual(v, a.value, TestSimpleFilter.VALUE_EQUAL_PLACE)
+            self.assertAlmostEqual(0, a.covar[0][0], TestSimpleFilter.VALUE_EQUAL_PLACE)
             self.assertEqual(a.count, i + 1)
 
     def test_average_filter_monotonic_sequence(self):
         a = AverageFilter()
         values = range(5)
 
-        expected_a_values = [0, 0.5, 1.0, 1.5, 2.0]
-        for (v, ev) in zip(values, expected_a_values):
+        expected_values = [0, 0.5, 1.0, 1.5, 2.0]
+        expected_covars = [0, 0.25, 0.66667, 1.25, 2.0]
+        for (v, ev, ec) in zip(values, expected_values, expected_covars):
             a.update(v)
             self.assertAlmostEqual(a.value, ev, TestSimpleFilter.VALUE_EQUAL_PLACE)
-
-
+            self.assertAlmostEqual(a.covar[0][0], ec, TestSimpleFilter.VALUE_EQUAL_PLACE)
 
 if (__name__ == "__main__"):
     unittest.main()

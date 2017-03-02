@@ -2,19 +2,23 @@ import numpy as np
 
 class AverageFilter:
     def __init__(self):
+        self._sample_sq_sum = None
         self._sample_sum = None
         self._sample_count = 0
 
     def reset(self):
+        self._sample_sq_sum = None
         self._sample_sum = None
         self._sample_count = 0
 
     def update(self, x):
         v = np.array(x, dtype=np.float)
         if (self._sample_sum is None):
+            self._sample_sq_sum = np.outer(v, v)
             self._sample_sum = v
             self._sample_count = 1
         else:
+            self._sample_sq_sum += np.outer(v, v)
             self._sample_sum += v
             self._sample_count += 1
 
@@ -24,6 +28,17 @@ class AverageFilter:
             return None
         else:
             return self._sample_sum / self._sample_count
+
+    @property
+    def covar(self):
+        """
+        :return a 2D numpy array, representing the covar matrix.
+        """
+        if (self._sample_count < 1):
+            return None
+        else:
+            mu = self.value
+            return self._sample_sq_sum / self._sample_count - np.outer(mu, mu)
 
     @property
     def count(self):
