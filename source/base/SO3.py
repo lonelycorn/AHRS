@@ -131,14 +131,11 @@ class SO3:
             if (theta < 1.0): # theta is 0
                 R = np.eye(3)
             else: # theta is pi
-                # find a vector that is perpendicular to df
-                dg = copy.deepcopy(df)
-                for i in range(3):
-                    if np.abs(df[i]) > 0.5:
-                        # impossible for all components <= 0.5
-                        dg[i] = -(1.0 - df[i]**2) / df[i]
-
-                # construct R
+                # should have 2 null vectors, which form a plane perpendicular
+                # to df. we choose the one corresponding to the minimal
+                # singular value as the rotation axis.
+                (u, s, v) = np.linalg.svd(np.array([df]))
+                dg = v[2]
                 R = rodrigues(dg, theta)
         else:
             # regular case: use rodrigues' formula

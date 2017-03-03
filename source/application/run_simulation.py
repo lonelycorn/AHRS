@@ -71,13 +71,11 @@ if (__name__ == "__main__"):
 
         estimator.update(t, gyro, accel, mag)
 
-        """
         true_orientation = simulator.true_orientation
         print("t = %.2f s, yaw = %.2f deg, pitch = %.2f deg, roll = %.2f deg\n" %\
               (t, true_orientation.get_yaw() * 180.0 / np.pi,
                true_orientation.get_pitch() * 180.0 / np.pi,
                true_orientation.get_roll() * 180.0 / np.pi))
-        """
 
         shared_data.time = simulator.time
         shared_data.true_orientation = simulator.true_orientation
@@ -86,7 +84,6 @@ if (__name__ == "__main__"):
         shared_data.estimated_orientation = estimator.get_orientation_in_world()
         
         R = estimator.get_orientation_in_world()
-        #print("t = {}, estimated_orientation =\n{}".format(t, R))
         
         # FIXME: using this until we figured out why the async update doesn't work...
         if (simulator.time > last_plot_time + interval):

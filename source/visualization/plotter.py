@@ -126,8 +126,6 @@ class Plotter:
         """
         calculate the axes of the reference frame which is transformed through R
         """
-        print("R =\n{}, axis.shape = {}, offset = {}, scale = {}".format(R_from_body_to_world, self._axis_x.shape, self._offset, scale))
-
         axis_x = R_from_body_to_world * self._axis_x * scale + self._offset
         axis_y = R_from_body_to_world * self._axis_y * scale + self._offset
         axis_z = R_from_body_to_world * self._axis_z * scale + self._offset
