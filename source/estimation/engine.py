@@ -13,7 +13,7 @@ class Engine:
     GYRO_NO_MOTION_THRESHOLD = 0.1
     ACCEL_NO_MOTION_THRESHOLD = 10.0 # FIXME we may need a bigger value
     LOWPASS_GAIN = 0.9
-    STATIC_CAL_SAMPLE_COUNT = 200
+    STATIC_CAL_SAMPLE_COUNT = 250
     SENSOR_COVAR_AMPLIFIER = 2.0 # covar obtained after static calibration would be amplified for better stability
     INITIAL_POSE_COVAR = 1e1 # diagonal
 
@@ -32,6 +32,7 @@ class Engine:
         self._accel_avg = AverageFilter()
         self._mag_avg = AverageFilter()
 
+        self._gyro_bias = None
         self._mag_calibrator = MagnetometerCalibrator(np.zeros(3))
 
         self._state = Engine.STATE_INIT
@@ -87,7 +88,7 @@ class Engine:
                     R_from_body_to_world = SO3.from_two_directions(gravity_in_body, gravity_in_world)
                     initial_pose_covar = np.eye(3) * Engine.INITIAL_POSE_COVAR
 
-                    gyro_bias = self._gyro_avg.value
+                    self._gyro_bias = self._gyro_avg.value
                     gyro_covar = self._gyro_avg.covar * Engine.SENSOR_COVAR_AMPLIFIER
 
                     accel_covar = self._accel_avg.covar * Engine.SENSOR_COVAR_AMPLIFIER
@@ -107,7 +108,7 @@ class Engine:
                         R_from_body_to_world.ln(), R_from_body_to_world.get_roll(),
                         R_from_body_to_world.get_pitch(), R_from_body_to_world.get_yaw()))
                     print("gravity in world = {}".format(gravity_in_world))
-                    print("gyro bias = {}".format(gyro_bias))
+                    print("gyro bias = {}".format(self._gyro_bias))
                     print("gyro covar = \n{}".format(gyro_covar))
                     print("accel covar = \n{}".format(accel_covar))
                     print("mag ref = {}".format(mag_ref))
@@ -118,7 +119,8 @@ class Engine:
             dt = t - self._last_update_time
 
             # always do gyro update
-            self._filter.process_update(gyro, dt)
+            gyro_calibrated = gyro - self._gyro_bias
+            self._filter.process_update(gyro_calibrated, dt)
 
             # do accel update iff gravity is dominant
             if (np.linalg.norm(accel) < Engine.ACCEL_NO_MOTION_THRESHOLD):

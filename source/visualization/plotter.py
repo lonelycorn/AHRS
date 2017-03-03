@@ -149,6 +149,7 @@ class Plotter:
         """
         Visualize shared data
         """
+        true_body_frame_scale = 0.75
         body_frame_scale = 0.5
         body_axis_width = 10
         world_axis_width = 5
@@ -158,7 +159,7 @@ class Plotter:
         # true body ref frame
         R_from_body_to_world = self._shared_data.true_orientation
         if (R_from_body_to_world is not None):
-            body_axes = self._get_frame_axes(R_from_body_to_world, body_frame_scale)
+            body_axes = self._get_frame_axes(R_from_body_to_world, true_body_frame_scale)
             plt.plot(body_axes[0], body_axes[1], 'r--', linewidth=body_axis_width)
             plt.plot(body_axes[2], body_axes[3], 'g--', linewidth=body_axis_width)
             plt.plot(body_axes[4], body_axes[5], 'b--', linewidth=body_axis_width)
