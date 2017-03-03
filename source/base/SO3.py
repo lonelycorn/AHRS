@@ -2,6 +2,7 @@ import sys
 import os
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
+import copy
 import numpy as np
 from base.config import ANGLE_TOLERANCE
 
@@ -130,7 +131,15 @@ class SO3:
             if (theta < 1.0): # theta is 0
                 R = np.eye(3)
             else: # theta is pi
-                R = -np.eye(3)
+                # find a vector that is perpendicular to df
+                dg = copy.deepcopy(df)
+                for i in range(3):
+                    if np.abs(df[i]) > 0.5:
+                        # impossible for all components <= 0.5
+                        dg[i] = -(1.0 - df[i]**2) / df[i]
+
+                # construct R
+                R = rodrigues(dg, theta)
         else:
             # regular case: use rodrigues' formula
             axis_unit = axis / np.linalg.norm(axis)

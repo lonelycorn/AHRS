@@ -45,6 +45,10 @@ class TestSO3(unittest.TestCase):
         sin_theta = np.linalg.norm(sin_theta)
         self.assertAlmostEqual(sin_theta, 0, default_tol_place)
 
+        # test if determinant is 1
+        det = np.linalg.det(R.get_matrix())
+        self.assertAlmostEqual(det, 1, default_tol_place)
+
     def test_inverse(self):
         rot = SO3.from_euler(0.1, -0.2, 0.3)
         tmp = np.dot(rot.get_matrix(), rot.inverse().get_matrix())
