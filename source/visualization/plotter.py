@@ -112,7 +112,7 @@ class Plotter:
         self._camera = VisualizationCamera(rotation, translation)
 
         # generate 3 axes
-        self._offset = np.array([-1, -1, 0], dtype=np.float)
+        self._offset = np.array([-0.5, -0.5, 0], dtype=np.float)
         self._origin = np.array([0, 0, 0], dtype=np.float)
         self._axis_x = np.array([1, 0, 0], dtype=np.float)
         self._axis_y = np.array([0, 1, 0], dtype=np.float)
@@ -122,10 +122,12 @@ class Plotter:
     def stopped(self):
         return self._shared_data.stopped
 
-    def _get_frame_axes(self, R_from_body_to_world, scale=1.0):
+    def _get_frame_points(self, R_from_body_to_world, scale=1.0):
         """
-        calculate the axes of the reference frame which is transformed through R
+        Calculate the canvas coordinate of the reference frame, which
+        is characterized by R_from_body_to_world
         """
+        # calculate new end points in world ref frame.
         axis_x = R_from_body_to_world * self._axis_x * scale + self._offset
         axis_y = R_from_body_to_world * self._axis_y * scale + self._offset
         axis_z = R_from_body_to_world * self._axis_z * scale + self._offset
@@ -134,16 +136,21 @@ class Plotter:
         points = [axis_x, axis_y, axis_z, origin]
         points = self._camera.project_points(points)
 
-        body_axis_x_1 = [points[3][0], points[0][0]]
-        body_axis_x_2 = [points[3][1], points[0][1]]
-        body_axis_y_1 = [points[3][0], points[1][0]]
-        body_axis_y_2 = [points[3][1], points[1][1]]
-        body_axis_z_1 = [points[3][0], points[2][0]]
-        body_axis_z_2 = [points[3][1], points[2][1]]
+        # calculate canvas coordinates
+        # NOTE: for the camera image, x-axis points to the right and
+        #       y-axis points downward; for the canvas, x-axis points
+        #       to the right and y-axis points up.
+        body_axis_x_1 = [ points[3][0],  points[0][0]]
+        body_axis_x_2 = [-points[3][1], -points[0][1]]
+        body_axis_y_1 = [ points[3][0],  points[1][0]]
+        body_axis_y_2 = [-points[3][1], -points[1][1]]
+        body_axis_z_1 = [ points[3][0],  points[2][0]]
+        body_axis_z_2 = [-points[3][1], -points[2][1]]
         
-        return (body_axis_x_1, body_axis_x_2,
-                body_axis_y_1, body_axis_y_2,
-                body_axis_z_1, body_axis_z_2)
+        points = (body_axis_x_1, body_axis_x_2,
+                  body_axis_y_1, body_axis_y_2,
+                  body_axis_z_1, body_axis_z_2)
+        return points 
 
     def draw(self):
         """
@@ -159,25 +166,25 @@ class Plotter:
         # true body ref frame
         R_from_body_to_world = self._shared_data.true_orientation
         if (R_from_body_to_world is not None):
-            body_axes = self._get_frame_axes(R_from_body_to_world, true_body_frame_scale)
-            plt.plot(body_axes[0], body_axes[1], 'r--', linewidth=body_axis_width)
-            plt.plot(body_axes[2], body_axes[3], 'g--', linewidth=body_axis_width)
-            plt.plot(body_axes[4], body_axes[5], 'b--', linewidth=body_axis_width)
+            points = self._get_frame_points(R_from_body_to_world, true_body_frame_scale)
+            plt.plot(points[0], points[1], 'r--', linewidth=body_axis_width)
+            plt.plot(points[2], points[3], 'g--', linewidth=body_axis_width)
+            plt.plot(points[4], points[5], 'b--', linewidth=body_axis_width)
 
         # estimated body ref frame
         R_from_body_to_world = self._shared_data.estimated_orientation
         if (R_from_body_to_world is not None):
-            body_axes = self._get_frame_axes(R_from_body_to_world, body_frame_scale)
-            plt.plot(body_axes[0], body_axes[1], 'r-', linewidth=body_axis_width)
-            plt.plot(body_axes[2], body_axes[3], 'g-', linewidth=body_axis_width)
-            plt.plot(body_axes[4], body_axes[5], 'b-', linewidth=body_axis_width)
+            points = self._get_frame_points(R_from_body_to_world, body_frame_scale)
+            plt.plot(points[0], points[1], 'r-', linewidth=body_axis_width)
+            plt.plot(points[2], points[3], 'g-', linewidth=body_axis_width)
+            plt.plot(points[4], points[5], 'b-', linewidth=body_axis_width)
 
         # world ref frame
         R_from_body_to_world = SO3()
-        body_axes = self._get_frame_axes(R_from_body_to_world)
-        plt.plot(body_axes[0], body_axes[1], 'r--', linewidth=world_axis_width)
-        plt.plot(body_axes[2], body_axes[3], 'g--', linewidth=world_axis_width)
-        plt.plot(body_axes[4], body_axes[5], 'b--', linewidth=world_axis_width)
+        points = self._get_frame_points(R_from_body_to_world)
+        plt.plot(points[0], points[1], 'r--', linewidth=world_axis_width)
+        plt.plot(points[2], points[3], 'g--', linewidth=world_axis_width)
+        plt.plot(points[4], points[5], 'b--', linewidth=world_axis_width)
 
         # axes
         plt.ylim((-VIEW_RANGE, VIEW_RANGE))
