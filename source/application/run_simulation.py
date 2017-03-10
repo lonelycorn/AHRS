@@ -18,7 +18,7 @@ def update_plot(*args):
     """
     plotter = args[0]
     interval = args[1]
-    
+
     if (not plotter.stopped):
         plotter.draw()
 
@@ -82,13 +82,22 @@ if (__name__ == "__main__"):
 
         shared_data.text = estimator.get_state_string()
         shared_data.estimated_orientation = estimator.get_orientation_in_world()
-        
+
         R = estimator.get_orientation_in_world()
-        
+        if R is not None:
+            print("estimation: yaw = %.2f deg, pitch = %.2f deg, roll = %.2f deg\n" % \
+                  (R.get_yaw() * 180.0 / np.pi,
+                   R.get_pitch() * 180.0 / np.pi,
+                   R.get_roll() * 180.0 / np.pi))
+
         # FIXME: using this until we figured out why the async update doesn't work...
+        # FIXME: don't pause for calibration for now
         if (simulator.time > last_plot_time + interval):
             plotter.draw()
-            input("Press Enter to continue")
+            if estimator.get_state_string() == "Running":
+                input("Press Enter to continue")
+            else:
+                pass
             last_plot_time = simulator.time
 
     print("Simulation ended.")

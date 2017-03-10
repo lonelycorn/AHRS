@@ -104,7 +104,7 @@ class KalmanFilterSO3:
 
         # update the mean and covariance with the measurement
         self._R_from_world_to_body = SO3.exp(np.dot(K, v)) * self._R_from_world_to_body
-        self._P = np.dot(np.eye(3) - K, self._P)
+        self._P = np.dot(np.eye(3) - np.dot(K, J), self._P)
 
     def acc_update(self, acc_meas, acc_covar=None):
         """
