@@ -13,7 +13,7 @@ class Engine:
     GYRO_NO_MOTION_THRESHOLD = 0.1
     ACCEL_NO_MOTION_THRESHOLD = 10.0 # FIXME we may need a bigger value
     LOWPASS_GAIN = 0.9
-    STATIC_CAL_SAMPLE_COUNT = 250
+    STATIC_CAL_SAMPLE_COUNT = 200
     SENSOR_COVAR_AMPLIFIER = 2.0 # covar obtained after static calibration would be amplified for better stability
     INITIAL_POSE_COVAR = 1e1 # diagonal
 
@@ -92,7 +92,7 @@ class Engine:
                     gyro_covar = self._gyro_avg.covar * Engine.SENSOR_COVAR_AMPLIFIER
 
                     accel_covar = self._accel_avg.covar * Engine.SENSOR_COVAR_AMPLIFIER
-                    
+
                     mag_ref = R_from_body_to_world.inverse() * self._mag_avg.value
                     mag_covar = self._mag_avg.covar * Engine.SENSOR_COVAR_AMPLIFIER
 
@@ -112,8 +112,8 @@ class Engine:
                     print("gyro covar = \n{}".format(gyro_covar))
                     print("accel covar = \n{}".format(accel_covar))
                     print("mag ref = {}".format(mag_ref))
-                    print("mag covar = {}".format(mag_covar))
-                    
+                    print("mag covar = \n{}".format(mag_covar))
+
 
         elif (self._state == Engine.STATE_RUNNING):
             dt = t - self._last_update_time
@@ -125,12 +125,16 @@ class Engine:
             # do accel update iff gravity is dominant
             if (np.linalg.norm(accel) < Engine.ACCEL_NO_MOTION_THRESHOLD):
                 self._filter.acc_update(accel)
+            else:
+                print("[ACC] rejected")
 
             # do mag update iff mag reading matchs mag param
             mag_calibrated = self._mag_calibrator.calibrate_measurement(mag)
             if (mag_calibrated is not None):
                 self._filter.mag_update(mag_calibrated)
-                    
+            else:
+                print("[MAG] rejected")
+
         else:
             # invalid state -- should not happen
             assert(False)
@@ -144,6 +148,11 @@ class Engine:
         if (self._state < Engine.STATE_RUNNING):
             return None
         return self._filter.get_estimate_mean().inverse()
+
+    def get_orientation_covar(self):
+        if (self._state < Engine.STATE_RUNNING):
+            return None
+        return self._filter.get_estimate_covar()
 
     def get_state_string(self):
         """

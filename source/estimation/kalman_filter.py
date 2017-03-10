@@ -81,15 +81,18 @@ class KalmanFilterSO3:
         i.e. angular velocities
         :param om: 1x3 numpy array of angular velocity
         :param dt: time interval
+        :param covar: process covar per unit time
         """
         R1 = SO3.exp(-om * dt)
         self._R_from_world_to_body = R1 * self._R_from_world_to_body
 
         R1 = R1.get_matrix()
-        if covar is None:
-            self._P = dt ** 2 * self._P_gyro + np.dot(R1, np.dot(self._P, R1))
+        # NOTE: process noise model is 'constant covar per unit time'
+        if (covar is None):
+            # NOTE: assuming gyro updates at a constant rate
+            self._P = self._P_gyro + np.dot(R1, np.dot(self._P, R1))
         else:
-            self._P = dt ** 2 * covar + np.dot(R1, np.dot(self._P, R1))
+            self._P = dt * covar + np.dot(R1, np.dot(self._P, R1))
 
     def measurement_update(self, J, cov_meas, v):
         """

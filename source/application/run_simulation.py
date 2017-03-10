@@ -84,11 +84,14 @@ if (__name__ == "__main__"):
         shared_data.estimated_orientation = estimator.get_orientation_in_world()
 
         R = estimator.get_orientation_in_world()
-        if R is not None:
-            print("estimation: yaw = %.2f deg, pitch = %.2f deg, roll = %.2f deg\n" % \
+        if (R is not None):
+            print("estimation: yaw = %.2f deg, pitch = %.2f deg, roll = %.2f deg" % \
                   (R.get_yaw() * 180.0 / np.pi,
                    R.get_pitch() * 180.0 / np.pi,
                    R.get_roll() * 180.0 / np.pi))
+
+            covar = estimator.get_orientation_covar()
+            print("estimation covar det = {}\n{}\n".format(np.linalg.det(covar), covar))
 
         # FIXME: using this until we figured out why the async update doesn't work...
         # FIXME: don't pause for calibration for now
@@ -96,8 +99,6 @@ if (__name__ == "__main__"):
             plotter.draw()
             if estimator.get_state_string() == "Running":
                 input("Press Enter to continue")
-            else:
-                pass
             last_plot_time = simulator.time
 
     print("Simulation ended.")

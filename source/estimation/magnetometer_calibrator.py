@@ -27,7 +27,7 @@ class MagnetometerCalibrator:
         self._coarse_samples = {}
         initial_guess = np.array([center_guess[0],
                                   center_guess[1],
-                                  center_guess[2], 
+                                  center_guess[2],
                                   0.0], dtype=np.float)
         initial_covar = np.eye(4) * MagnetometerCalibrator.INITIAL_COVAR
         self._estimator = LeastSquareEstimator(initial_guess, initial_covar)
@@ -38,7 +38,7 @@ class MagnetometerCalibrator:
         :param mag: 3-by-1 numpy array; raw measurement from the magnetometer.
         """
         self._add_sample(mag)
-        (phi, y) = self._convert_to_estimator_sample(mag)        
+        (phi, y) = self._convert_to_estimator_sample(mag)
         self._estimator.update(phi, y)
 
         #estimate = self._estimator.get_estimate_mean()
@@ -68,7 +68,7 @@ class MagnetometerCalibrator:
         else:
             estimate = self._estimator.get_estimate_mean()
             center = np.array(estimate[0:3], dtype=np.float)
-            radius = np.sqrt(estimate[3]**2 + np.dot(center, center))
+            radius = np.sqrt(estimate[3] + np.dot(center, center))
             return radius
 
     def calibrate_measurement(self, mag, error_margin_ratio=None):
@@ -77,7 +77,7 @@ class MagnetometerCalibrator:
                 measurement does not fit into the model within the specified error margin.
         """
         if (not self._ready()):
-            return None 
+            return None
 
         if (error_margin_ratio is None):
             error_margin_ratio = MagnetometerCalibrator.ERROR_MARGIN_RATIO
@@ -86,9 +86,8 @@ class MagnetometerCalibrator:
         radius = self.intensity
         calibrated = mag - center
 
-        # FIXME: disable error check for now
-        # error = np.abs(radius - np.linalg.norm(calibrated))
-        error = 0
+        # measurement is good if it approximately lies on the estimated sphere
+        error = np.abs(radius - np.linalg.norm(calibrated))
         if (error < error_margin_ratio * radius):
             return calibrated
         else:
@@ -105,7 +104,7 @@ class MagnetometerCalibrator:
         # rearranging, we have
         # [2*x, 2*y, 2*z, 1] * [x_c, y_c, z_c, d].T == x**2 + y**2 + z**2
         # where d = R**2 - x_c**2 - y_c**2 - z_c**2
-        
+
         phi = np.array([mag[0] * 2.0,
                         mag[1] * 2.0,
                         mag[2] * 2.0,
@@ -137,7 +136,7 @@ class MagnetometerCalibrator:
         y = np.int(np.round(mag[1]))
         z = np.int(np.round(mag[2]))
         return x ^ y ^ z
-    
+
     def _get_coarse_sample_hash(self, mag):
         """
         similar to _get_sample_hash, but uses a larger bin
